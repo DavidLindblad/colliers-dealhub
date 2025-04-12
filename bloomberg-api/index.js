@@ -58,7 +58,8 @@ async function fetchAndStoreData() {
 
     // Fetch Rates data
     console.log('Fetching Rates data...');
-    const ratesResponse = await bloombergAxios.get(\\/\/data\, {
+    const ratesUrl = bloombergConfig.dataLicenseUrl + '/' + bloombergConfig.ratesDataset + '/data';
+    const ratesResponse = await bloombergAxios.get(ratesUrl, {
       params: {
         format: 'json'
       }
@@ -68,7 +69,8 @@ async function fetchAndStoreData() {
 
     // Fetch CPI data
     console.log('Fetching CPI data...');
-    const cpiResponse = await bloombergAxios.get(\\/\/data\, {
+    const cpiUrl = bloombergConfig.dataLicenseUrl + '/' + bloombergConfig.cpiDataset + '/data';
+    const cpiResponse = await bloombergAxios.get(cpiUrl, {
       params: {
         format: 'json'
       }
