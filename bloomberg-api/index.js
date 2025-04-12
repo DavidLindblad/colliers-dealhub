@@ -24,12 +24,20 @@ async function fetchAndStoreData() {
   try {
     // Fetch data from Bloomberg
     console.log('Fetching data from Bloomberg...');
-    const response = await axios.get(bloombergConfig.endpoint, {
+    const response = await axios({
+      method: 'post',
+      url: bloombergConfig.endpoint,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
       auth: {
         username: bloombergConfig.clientId,
         password: bloombergConfig.clientSecret
-      }
+      },
+      data: 'grant_type=client_credentials'
     });
+
+    console.log('Bloomberg API response:', response.data);
 
     // Parse and store data
     console.log('Parsing and storing data in Supabase...');
@@ -40,7 +48,11 @@ async function fetchAndStoreData() {
     if (error) throw error;
     console.log('Data successfully stored:', new Date().toISOString());
   } catch (error) {
-    console.error('Error in fetchAndStoreData:', error);
+    console.error('Error in fetchAndStoreData:', error.message);
+    if (error.response) {
+      console.error('API Response:', error.response.data);
+      console.error('Status:', error.response.status);
+    }
   }
 }
 
