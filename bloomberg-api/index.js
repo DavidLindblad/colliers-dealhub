@@ -42,17 +42,17 @@ async function fetchAndStoreData() {
 
     // Fetch Rates data
     console.log('Fetching Rates data...');
-    const ratesResponse = await axios.get(\https://bsso.blpprofessional.com/api/v1/datasets/\\, {
+    const ratesResponse = await axios.get('https://bsso.blpprofessional.com/api/v1/datasets/' + bloombergConfig.ratesDataset, {
       headers: {
-        'Authorization': \Bearer \\
+        'Authorization': 'Bearer ' + accessToken
       }
     });
 
     // Fetch CPI data
     console.log('Fetching CPI data...');
-    const cpiResponse = await axios.get(\https://bsso.blpprofessional.com/api/v1/datasets/\\, {
+    const cpiResponse = await axios.get('https://bsso.blpprofessional.com/api/v1/datasets/' + bloombergConfig.cpiDataset, {
       headers: {
-        'Authorization': \Bearer \\
+        'Authorization': 'Bearer ' + accessToken
       }
     });
 
