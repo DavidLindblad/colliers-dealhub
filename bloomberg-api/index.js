@@ -2,6 +2,8 @@
 const cron = require('node-cron');
 const axios = require('axios');
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const { parse } = require('csv-parse/sync');
 
@@ -11,12 +13,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Create custom HTTPS agent
-const agent = new https.Agent({
-  rejectUnauthorized: false,  // Only for testing - remove in production
-  secureProtocol: 'TLSv1_2_method'
-});
-
 // Bloomberg API configuration
 const bloombergConfig = {
   endpoint: process.env.BLOOMBERG_API_ENDPOINT,
@@ -24,8 +20,17 @@ const bloombergConfig = {
   clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
   ratesDataset: process.env.BLOOMBERG_RATES_DATASET,
   cpiDataset: process.env.BLOOMBERG_CPI_DATASET,
-  dataLicenseUrl: 'https://dlws.blpprofessional.com/dlws/data-license/v1'
+  dataLicenseUrl: 'https://api.bloomberg.com/eap/catalogs/bbg/datasets'
 };
+
+// Create axios instance with custom config
+const bloombergAxios = axios.create({
+  timeout: 30000,
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+});
 
 async function fetchAndStoreData() {
   console.log('Starting data fetch at:', new Date().toISOString());
@@ -42,40 +47,34 @@ async function fetchAndStoreData() {
         username: bloombergConfig.clientId,
         password: bloombergConfig.clientSecret
       },
-      data: 'grant_type=client_credentials',
-      httpsAgent: agent
+      data: 'grant_type=client_credentials'
     });
 
     const accessToken = tokenResponse.data.access_token;
     console.log('Access token received');
 
+    // Set token in axios instance
+    bloombergAxios.defaults.headers.common['Authorization'] = 'Bearer ' + accessToken;
+
     // Fetch Rates data
     console.log('Fetching Rates data...');
-    const ratesResponse = await axios.get(bloombergConfig.dataLicenseUrl + '/history/bulk', {
-      headers: {
-        'Authorization': 'Bearer ' + accessToken,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+    const ratesResponse = await bloombergAxios.get(\\/\/data\, {
       params: {
-        dataset: bloombergConfig.ratesDataset
-      },
-      httpsAgent: agent
+        format: 'json'
+      }
     });
+
+    console.log('Rates data received:', ratesResponse.data);
 
     // Fetch CPI data
     console.log('Fetching CPI data...');
-    const cpiResponse = await axios.get(bloombergConfig.dataLicenseUrl + '/history/bulk', {
-      headers: {
-        'Authorization': 'Bearer ' + accessToken,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+    const cpiResponse = await bloombergAxios.get(\\/\/data\, {
       params: {
-        dataset: bloombergConfig.cpiDataset
-      },
-      httpsAgent: agent
+        format: 'json'
+      }
     });
+
+    console.log('CPI data received:', cpiResponse.data);
 
     // Process and store data
     console.log('Processing and storing data in Supabase...');
