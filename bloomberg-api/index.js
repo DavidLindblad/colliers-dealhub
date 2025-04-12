@@ -53,7 +53,7 @@ const schedules = [
 
 schedules.forEach((schedule, index) => {
   if (schedule) {
-    console.log(Setting up cron job  with schedule: );
+    console.log(\Setting up cron job \ with schedule: \\);
     cron.schedule(schedule, fetchAndStoreData);
   }
 });
