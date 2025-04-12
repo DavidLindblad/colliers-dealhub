@@ -16,7 +16,8 @@ const bloombergConfig = {
   clientId: process.env.BLOOMBERG_CLIENT_ID,
   clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
   ratesDataset: process.env.BLOOMBERG_RATES_DATASET,
-  cpiDataset: process.env.BLOOMBERG_CPI_DATASET
+  cpiDataset: process.env.BLOOMBERG_CPI_DATASET,
+  dataLicenseUrl: 'https://dlws.blpprofessional.com/dlws/data-license/v1'
 };
 
 async function fetchAndStoreData() {
@@ -42,17 +43,25 @@ async function fetchAndStoreData() {
 
     // Fetch Rates data
     console.log('Fetching Rates data...');
-    const ratesResponse = await axios.get('https://bsso.blpprofessional.com/api/v1/datasets/' + bloombergConfig.ratesDataset, {
+    const ratesResponse = await axios.get(bloombergConfig.dataLicenseUrl + '/history/bulk', {
       headers: {
-        'Authorization': 'Bearer ' + accessToken
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      params: {
+        dataset: bloombergConfig.ratesDataset
       }
     });
 
     // Fetch CPI data
     console.log('Fetching CPI data...');
-    const cpiResponse = await axios.get('https://bsso.blpprofessional.com/api/v1/datasets/' + bloombergConfig.cpiDataset, {
+    const cpiResponse = await axios.get(bloombergConfig.dataLicenseUrl + '/history/bulk', {
       headers: {
-        'Authorization': 'Bearer ' + accessToken
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      params: {
+        dataset: bloombergConfig.cpiDataset
       }
     });
 
@@ -76,6 +85,7 @@ async function fetchAndStoreData() {
     if (error.response) {
       console.error('API Response:', error.response.data);
       console.error('Status:', error.response.status);
+      console.error('Headers:', error.response.headers);
     }
   }
 }
