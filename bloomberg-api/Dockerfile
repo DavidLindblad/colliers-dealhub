@@ -1,4 +1,4 @@
-# Use Node.js LTS version
+﻿# Use Node.js LTS version
 FROM node:18-alpine
 
 # Create app directory
@@ -13,8 +13,5 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Expose port (if needed)
-EXPOSE 3000
-
 # Start the application
-CMD [ "npm", "start" ] 
+CMD [ "npm", "start" ]
