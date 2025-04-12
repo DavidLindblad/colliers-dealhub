@@ -19,7 +19,8 @@ const bloombergConfig = {
   clientId: process.env.BLOOMBERG_CLIENT_ID,
   clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
   baseUrl: 'https://api.bloomberg.com/eap/',
-  catalog: '40368'
+  catalog: '40368',
+  apiVersion: '2'  // Added API version
 };
 
 async function fetchAndStoreData() {
@@ -44,6 +45,13 @@ async function fetchAndStoreData() {
     // Get today's date in YYYYMMDD format
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
 
+    // Common headers for Bloomberg API requests
+    const bloombergHeaders = {
+      'Authorization': 'Bearer ' + accessToken,
+      'Accept': 'text/csv',
+      'api-version': bloombergConfig.apiVersion
+    };
+
     // Fetch Rates data - matching VBA implementation
     console.log('Fetching Rates data...');
     const ratesUrl = bloombergConfig.baseUrl + 
@@ -53,10 +61,7 @@ async function fetchAndStoreData() {
                     '/distributions/' + process.env.BLOOMBERG_RATES_DATASET + '.csv';
 
     const ratesResponse = await axios.get(ratesUrl, {
-      headers: {
-        'Authorization': 'Bearer ' + accessToken,
-        'Accept': 'text/csv'
-      }
+      headers: bloombergHeaders
     });
 
     console.log('Rates data received');
@@ -70,10 +75,7 @@ async function fetchAndStoreData() {
                    '/distributions/' + process.env.BLOOMBERG_CPI_DATASET + '.csv';
 
     const cpiResponse = await axios.get(cpiUrl, {
-      headers: {
-        'Authorization': 'Bearer ' + accessToken,
-        'Accept': 'text/csv'
-      }
+      headers: bloombergHeaders
     });
 
     console.log('CPI data received');
