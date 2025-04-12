@@ -6,7 +6,6 @@ const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const { parse } = require('csv-parse/sync');
-const tls = require('tls');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -16,11 +15,8 @@ const supabase = createClient(
 
 // Create custom HTTPS agent with TLS 1.2
 const httpsAgent = new https.Agent({
-  secureProtocol: 'TLSv1_2_method',
-  rejectUnauthorized: true,
-  ciphers: 'ALL',
   minVersion: 'TLSv1.2',
-  maxVersion: 'TLSv1.2'
+  rejectUnauthorized: true
 });
 
 // Bloomberg API configuration - matching VBA implementation exactly
