@@ -22,9 +22,9 @@ const bloombergConfig = {
 async function fetchAndStoreData() {
   console.log('Starting data fetch at:', new Date().toISOString());
   try {
-    // Fetch data from Bloomberg
-    console.log('Fetching data from Bloomberg...');
-    const response = await axios({
+    // Get Bloomberg access token
+    console.log('Getting Bloomberg access token...');
+    const tokenResponse = await axios({
       method: 'post',
       url: bloombergConfig.endpoint,
       headers: {
@@ -37,13 +37,37 @@ async function fetchAndStoreData() {
       data: 'grant_type=client_credentials'
     });
 
-    console.log('Bloomberg API response:', response.data);
+    const accessToken = tokenResponse.data.access_token;
+    console.log('Access token received');
 
-    // Parse and store data
-    console.log('Parsing and storing data in Supabase...');
+    // Fetch Rates data
+    console.log('Fetching Rates data...');
+    const ratesResponse = await axios.get(\https://bsso.blpprofessional.com/api/v1/datasets/\\, {
+      headers: {
+        'Authorization': \Bearer \\
+      }
+    });
+
+    // Fetch CPI data
+    console.log('Fetching CPI data...');
+    const cpiResponse = await axios.get(\https://bsso.blpprofessional.com/api/v1/datasets/\\, {
+      headers: {
+        'Authorization': \Bearer \\
+      }
+    });
+
+    // Process and store data
+    console.log('Processing and storing data in Supabase...');
+    const marketData = {
+      date: new Date().toISOString().split('T')[0],
+      rates_data: ratesResponse.data,
+      cpi_data: cpiResponse.data,
+      timestamp: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from(process.env.SUPABASE_TABLE_NAME)
-      .insert([response.data]);
+      .insert([marketData]);
 
     if (error) throw error;
     console.log('Data successfully stored:', new Date().toISOString());
