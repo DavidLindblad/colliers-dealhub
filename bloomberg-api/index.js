@@ -86,16 +86,17 @@ async function fetchAndStoreData() {
     const combinedData = bbData1 + bbData2;
     const parsedData = parse(combinedData);
 
-    // Store in Supabase
+    // Store in Supabase with correct column names
     console.log('Storing data in Supabase...');
     const marketData = {
-      date: new Date().toISOString().split('T')[0],
-      data: parsedData,
-      timestamp: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      rates_data: bbData1,
+      cpi_data: bbData2,
+      last_updated: new Date().toISOString()
     };
 
     const { data, error } = await supabase
-      .from(process.env.SUPABASE_TABLE_NAME)
+      .from('DailyMarketReport')  // Use the exact table name
       .insert([marketData]);
 
     if (error) throw error;
