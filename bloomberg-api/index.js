@@ -18,8 +18,7 @@ const bloombergConfig = {
   tokenEndpoint: 'https://bsso.blpprofessional.com/ext/api/as/token.oauth2',
   clientId: process.env.BLOOMBERG_CLIENT_ID,
   clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
-  baseUrl: 'https://api.bloomberg.com/eap/',
-  catalog: '40368',
+  baseUrl: 'https://api.bloomberg.com/eap/catalogs/40368/datasets/',  // Updated to match VBA exactly
   apiVersion: '2'
 };
 
@@ -55,8 +54,7 @@ async function fetchAndStoreData() {
     // Fetch Rates data - exactly matching VBA URL structure
     console.log('Fetching Rates data...');
     const ratesUrl = bloombergConfig.baseUrl + 
-                    'catalogs/' + bloombergConfig.catalog + 
-                    '/datasets/' + process.env.BLOOMBERG_RATES_DATASET + 
+                    process.env.BLOOMBERG_RATES_DATASET + 
                     '/snapshots/' + today + 
                     '/distributions/' + process.env.BLOOMBERG_RATES_DATASET + '.csv';
 
@@ -78,8 +76,7 @@ async function fetchAndStoreData() {
     // Fetch CPI data - exactly matching VBA URL structure
     console.log('Fetching CPI data...');
     const cpiUrl = bloombergConfig.baseUrl + 
-                   'catalogs/' + bloombergConfig.catalog + 
-                   '/datasets/' + process.env.BLOOMBERG_CPI_DATASET + 
+                   process.env.BLOOMBERG_CPI_DATASET + 
                    '/snapshots/' + today + 
                    '/distributions/' + process.env.BLOOMBERG_CPI_DATASET + '.csv';
 
