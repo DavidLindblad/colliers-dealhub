@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const { parse } = require('csv-parse/sync');
+const tls = require('tls');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -13,14 +14,30 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Create custom HTTPS agent with TLS 1.2
+const httpsAgent = new https.Agent({
+  secureProtocol: 'TLSv1_2_method',
+  rejectUnauthorized: true,
+  ciphers: 'ALL',
+  minVersion: 'TLSv1.2',
+  maxVersion: 'TLSv1.2'
+});
+
 // Bloomberg API configuration - matching VBA implementation exactly
 const bloombergConfig = {
   tokenEndpoint: 'https://bsso.blpprofessional.com/ext/api/as/token.oauth2',
   clientId: process.env.BLOOMBERG_CLIENT_ID,
   clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
-  baseUrl: 'https://dlws.blpprofessional.com/dlws/data-license/v1/history/bulk',  // Updated to DLWS endpoint
+  baseUrl: 'https://dlws.blpprofessional.com/dlws/data-license/v1/history/bulk',
   apiVersion: '2'
 };
+
+// Create axios instance with custom config
+const bloombergAxios = axios.create({
+  httpsAgent,
+  timeout: 30000,
+  maxRedirects: 5
+});
 
 async function fetchAndStoreData() {
   console.log('Starting data fetch at:', new Date().toISOString());
@@ -33,6 +50,7 @@ async function fetchAndStoreData() {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
+      httpsAgent,
       data: 'grant_type=client_credentials' +
             '&client_id=' + bloombergConfig.clientId +
             '&client_secret=' + bloombergConfig.clientSecret
@@ -45,7 +63,8 @@ async function fetchAndStoreData() {
     const bloombergHeaders = {
       'Authorization': 'Bearer ' + accessToken,
       'Accept': 'text/csv',
-      'api-version': bloombergConfig.apiVersion
+      'api-version': bloombergConfig.apiVersion,
+      'Content-Type': 'application/json'
     };
 
     // Fetch Rates data - using DLWS endpoint
@@ -53,7 +72,7 @@ async function fetchAndStoreData() {
     const ratesUrl = bloombergConfig.baseUrl + '?dataset=' + process.env.BLOOMBERG_RATES_DATASET;
 
     console.log('Requesting Rates URL:', ratesUrl);
-    const ratesResponse = await axios.get(ratesUrl, {
+    const ratesResponse = await bloombergAxios.get(ratesUrl, {
       headers: bloombergHeaders,
       validateStatus: function (status) {
         return status < 500; // Accept any status code less than 500
@@ -72,7 +91,7 @@ async function fetchAndStoreData() {
     const cpiUrl = bloombergConfig.baseUrl + '?dataset=' + process.env.BLOOMBERG_CPI_DATASET;
 
     console.log('Requesting CPI URL:', cpiUrl);
-    const cpiResponse = await axios.get(cpiUrl, {
+    const cpiResponse = await bloombergAxios.get(cpiUrl, {
       headers: bloombergHeaders,
       validateStatus: function (status) {
         return status < 500; // Accept any status code less than 500
