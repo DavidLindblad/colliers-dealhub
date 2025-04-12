@@ -13,5 +13,8 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Expose port for container configuration
+EXPOSE 3000
+
 # Start the application
 CMD [ "npm", "start" ]
