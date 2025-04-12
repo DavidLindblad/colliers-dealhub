@@ -18,19 +18,14 @@ const bloombergConfig = {
   tokenEndpoint: 'https://bsso.blpprofessional.com/ext/api/as/token.oauth2',
   clientId: 'ed1b85be93ad2b60985c6edacf039aa8',
   clientSecret: '42a3cf00ca42c5d1588e9337692d54ea76d4fe48fcef251bc4bc1ed2c08f012b',
-  baseUrl: 'https://api.bloomberg.com/eap/',
-  catalog: '40368',
+  baseUrl: 'https://dlws.blpprofessional.com/dlws/data-license/v1/history/bulk',  // Changed to DLWS endpoint
   ratesDataset: 'uhTHmsoic3s',
-  cpiDataset: 'uhZ2f73GGS6Y'  // Updated CPI dataset ID
+  cpiDataset: 'uhZ2f73GGS6Y'
 };
 
 async function fetchAndStoreData() {
   console.log('Starting data fetch at:', new Date().toISOString());
   try {
-    // Get today's date in YYYYMMDD format for snapshot
-    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    console.log('Using snapshot date:', today);
-
     // Get Bloomberg access token
     console.log('Getting Bloomberg access token...');
     const tokenResponse = await axios({
@@ -47,13 +42,9 @@ async function fetchAndStoreData() {
     const accessToken = tokenResponse.data.access_token;
     console.log('Access token received');
 
-    // Fetch Rates data
+    // Fetch Rates data using DLWS endpoint
     console.log('Fetching Rates data...');
-    const ratesUrl = bloombergConfig.baseUrl + 
-                    'catalogs/' + bloombergConfig.catalog + 
-                    '/datasets/' + bloombergConfig.ratesDataset + 
-                    '/snapshots/' + today + 
-                    '/distributions/' + bloombergConfig.ratesDataset + '.csv';
+    const ratesUrl = bloombergConfig.baseUrl + '?dataset=' + bloombergConfig.ratesDataset;
 
     console.log('Requesting Rates URL:', ratesUrl);
     const ratesResponse = await axios.get(ratesUrl, {
@@ -68,13 +59,9 @@ async function fetchAndStoreData() {
     const ratesData = ratesResponse.data.split('\\n').slice(1).join('\\n');
     console.log('Rates data received');
 
-    // Fetch CPI data
+    // Fetch CPI data using DLWS endpoint
     console.log('Fetching CPI data...');
-    const cpiUrl = bloombergConfig.baseUrl + 
-                   'catalogs/' + bloombergConfig.catalog + 
-                   '/datasets/' + bloombergConfig.cpiDataset + 
-                   '/snapshots/' + today + 
-                   '/distributions/' + bloombergConfig.cpiDataset + '.csv';
+    const cpiUrl = bloombergConfig.baseUrl + '?dataset=' + bloombergConfig.cpiDataset;
 
     console.log('Requesting CPI URL:', cpiUrl);
     const cpiResponse = await axios.get(cpiUrl, {
