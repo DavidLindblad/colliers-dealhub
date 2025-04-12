@@ -1,35 +1,20 @@
-@"
-# Colliers DealHub Services
+﻿# Colliers DealHub Service
 
-This repository contains two main services:
+Bloomberg data integration service for Colliers DealHub that:
+- Fetches data from Bloomberg
+- Stores in Supabase
+- Runs on schedule
 
-1. Bloomberg API Service (mailhub.colliersdealhub.com)
-   - Fetches data from Bloomberg
-   - Stores in Supabase
-   - Runs on schedule
+## Data Access
+Data can be accessed directly through Supabase REST API:
 
-2. Market Data API (api.colliersdealhub.com)
-   - Serves market data from Supabase
-   - Provides REST endpoints
-   - Supports JSON and CSV formats
-
-## Services
-
-### Bloomberg API
-Located in \`/bloomberg-api\`
-- Handles Bloomberg data integration
-- Runs scheduled data fetching
-- Updates Supabase database
-
-### Market Data API
-Located in \`/market-data-api\`
-- Provides REST endpoints for data access
-- Supports JSON and CSV formats
-- Includes filtering and date range options
+```
+GET https://supabase.colliersdealhub.com/rest/v1/DailyMarketReport
+  ?select=*
+  &order=Date.desc
+  &limit=100
+```
 
 ## Deployment
-
-Services are deployed using Coolify to:
-- Bloomberg API: mailhub.colliersdealhub.com
-- Market Data API: api.colliersdealhub.com
-"@ | Out-File -FilePath .\colliers-dealhub\README.md -Encoding UTF8
+Service is deployed using Coolify to:
+- Bloomberg Integration: mailhub.colliersdealhub.com
