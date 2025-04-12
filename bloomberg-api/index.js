@@ -82,21 +82,18 @@ async function fetchAndStoreData() {
     bbData2 = bbData2.substring(bbData2.indexOf('\\n') + 1);
     console.log('CPI data received and processed');
 
-    // Combine and parse the data
-    const combinedData = bbData1 + bbData2;
-    const parsedData = parse(combinedData);
-
     // Store in Supabase with correct column names
     console.log('Storing data in Supabase...');
     const marketData = {
-      created_at: new Date().toISOString(),
-      rates_data: bbData1,
-      cpi_data: bbData2,
-      last_updated: new Date().toISOString()
+      id: Date.now(),  // Auto-generated ID
+      date: new Date().toISOString().split('T')[0],
+      rates: bbData1,
+      cpi: bbData2,
+      created_at: new Date().toISOString()
     };
 
     const { data, error } = await supabase
-      .from('DailyMarketReport')  // Use the exact table name
+      .from('DailyMarketReport')
       .insert([marketData]);
 
     if (error) throw error;
