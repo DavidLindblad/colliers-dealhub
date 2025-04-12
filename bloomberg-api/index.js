@@ -13,77 +13,81 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Bloomberg API configuration
+// Bloomberg API configuration - matching VBA implementation
 const bloombergConfig = {
-  endpoint: process.env.BLOOMBERG_API_ENDPOINT,
+  tokenEndpoint: 'https://bsso.blpprofessional.com/ext/api/as/token.oauth2',
   clientId: process.env.BLOOMBERG_CLIENT_ID,
   clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
-  ratesDataset: process.env.BLOOMBERG_RATES_DATASET,
-  cpiDataset: process.env.BLOOMBERG_CPI_DATASET,
-  dataLicenseUrl: 'https://api.bloomberg.com/eap/catalogs/bbg/datasets'
+  baseUrl: 'https://api.bloomberg.com/eap/',
+  catalog: '40368'
 };
-
-// Create axios instance with custom config
-const bloombergAxios = axios.create({
-  timeout: 30000,
-  headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-  }
-});
 
 async function fetchAndStoreData() {
   console.log('Starting data fetch at:', new Date().toISOString());
   try {
-    // Get Bloomberg access token
+    // Get Bloomberg access token - matching VBA implementation
     console.log('Getting Bloomberg access token...');
     const tokenResponse = await axios({
       method: 'post',
-      url: bloombergConfig.endpoint,
+      url: bloombergConfig.tokenEndpoint,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      auth: {
-        username: bloombergConfig.clientId,
-        password: bloombergConfig.clientSecret
-      },
-      data: 'grant_type=client_credentials'
+      data: 'grant_type=client_credentials' +
+            '&client_id=' + bloombergConfig.clientId +
+            '&client_secret=' + bloombergConfig.clientSecret
     });
 
     const accessToken = tokenResponse.data.access_token;
     console.log('Access token received');
 
-    // Set token in axios instance
-    bloombergAxios.defaults.headers.common['Authorization'] = 'Bearer ' + accessToken;
+    // Get today's date in YYYYMMDD format
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
 
-    // Fetch Rates data
+    // Fetch Rates data - matching VBA implementation
     console.log('Fetching Rates data...');
-    const ratesUrl = bloombergConfig.dataLicenseUrl + '/' + bloombergConfig.ratesDataset + '/data';
-    const ratesResponse = await bloombergAxios.get(ratesUrl, {
-      params: {
-        format: 'json'
+    const ratesUrl = bloombergConfig.baseUrl + 
+                    'catalogs/' + bloombergConfig.catalog + 
+                    '/datasets/' + process.env.BLOOMBERG_RATES_DATASET + 
+                    '/snapshots/' + today + 
+                    '/distributions/' + process.env.BLOOMBERG_RATES_DATASET + '.csv';
+
+    const ratesResponse = await axios.get(ratesUrl, {
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Accept': 'text/csv'
       }
     });
 
-    console.log('Rates data received:', ratesResponse.data);
+    console.log('Rates data received');
 
-    // Fetch CPI data
+    // Fetch CPI data - matching VBA implementation
     console.log('Fetching CPI data...');
-    const cpiUrl = bloombergConfig.dataLicenseUrl + '/' + bloombergConfig.cpiDataset + '/data';
-    const cpiResponse = await bloombergAxios.get(cpiUrl, {
-      params: {
-        format: 'json'
+    const cpiUrl = bloombergConfig.baseUrl + 
+                   'catalogs/' + bloombergConfig.catalog + 
+                   '/datasets/' + process.env.BLOOMBERG_CPI_DATASET + 
+                   '/snapshots/' + today + 
+                   '/distributions/' + process.env.BLOOMBERG_CPI_DATASET + '.csv';
+
+    const cpiResponse = await axios.get(cpiUrl, {
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Accept': 'text/csv'
       }
     });
 
-    console.log('CPI data received:', cpiResponse.data);
+    console.log('CPI data received');
+
+    // Parse CSV data (removing headers like in VBA)
+    const ratesData = parse(ratesResponse.data.split('\\n').slice(1).join('\\n'));
+    const cpiData = parse(cpiResponse.data.split('\\n').slice(1).join('\\n'));
 
     // Process and store data
     console.log('Processing and storing data in Supabase...');
     const marketData = {
       date: new Date().toISOString().split('T')[0],
-      rates_data: ratesResponse.data,
-      cpi_data: cpiResponse.data,
+      rates_data: ratesData,
+      cpi_data: cpiData,
       timestamp: new Date().toISOString()
     };
 
