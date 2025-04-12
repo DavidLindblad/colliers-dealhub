@@ -1,6 +1,7 @@
 ﻿require('dotenv').config();
 const cron = require('node-cron');
 const axios = require('axios');
+const https = require('https');
 const { createClient } = require('@supabase/supabase-js');
 const { parse } = require('csv-parse/sync');
 
@@ -9,6 +10,12 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Create custom HTTPS agent
+const agent = new https.Agent({
+  rejectUnauthorized: false,  // Only for testing - remove in production
+  secureProtocol: 'TLSv1_2_method'
+});
 
 // Bloomberg API configuration
 const bloombergConfig = {
@@ -35,7 +42,8 @@ async function fetchAndStoreData() {
         username: bloombergConfig.clientId,
         password: bloombergConfig.clientSecret
       },
-      data: 'grant_type=client_credentials'
+      data: 'grant_type=client_credentials',
+      httpsAgent: agent
     });
 
     const accessToken = tokenResponse.data.access_token;
@@ -46,11 +54,13 @@ async function fetchAndStoreData() {
     const ratesResponse = await axios.get(bloombergConfig.dataLicenseUrl + '/history/bulk', {
       headers: {
         'Authorization': 'Bearer ' + accessToken,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       params: {
         dataset: bloombergConfig.ratesDataset
-      }
+      },
+      httpsAgent: agent
     });
 
     // Fetch CPI data
@@ -58,11 +68,13 @@ async function fetchAndStoreData() {
     const cpiResponse = await axios.get(bloombergConfig.dataLicenseUrl + '/history/bulk', {
       headers: {
         'Authorization': 'Bearer ' + accessToken,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       params: {
         dataset: bloombergConfig.cpiDataset
-      }
+      },
+      httpsAgent: agent
     });
 
     // Process and store data
@@ -87,6 +99,7 @@ async function fetchAndStoreData() {
       console.error('Status:', error.response.status);
       console.error('Headers:', error.response.headers);
     }
+    console.error('Full error:', error);
   }
 }
 
