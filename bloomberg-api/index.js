@@ -13,32 +13,19 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Create custom HTTPS agent with TLS 1.2
-const httpsAgent = new https.Agent({
-  minVersion: 'TLSv1.2',
-  rejectUnauthorized: true
-});
-
-// Bloomberg API configuration - matching VBA implementation exactly
+// Bloomberg API configuration - matching exact VBA implementation
 const bloombergConfig = {
   tokenEndpoint: 'https://bsso.blpprofessional.com/ext/api/as/token.oauth2',
   clientId: process.env.BLOOMBERG_CLIENT_ID,
   clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
-  baseUrl: 'https://dlws.blpprofessional.com/dlws/data-license/v1/history/bulk',
-  apiVersion: '2'
+  baseUrl: 'https://api.bloomberg.com/eap/',  // Matches BBHost in VBA
+  catalog: '40368'
 };
-
-// Create axios instance with custom config
-const bloombergAxios = axios.create({
-  httpsAgent,
-  timeout: 30000,
-  maxRedirects: 5
-});
 
 async function fetchAndStoreData() {
   console.log('Starting data fetch at:', new Date().toISOString());
   try {
-    // Get Bloomberg access token - matching VBA implementation
+    // Get Bloomberg access token - matching VBA implementation exactly
     console.log('Getting Bloomberg access token...');
     const tokenResponse = await axios({
       method: 'post',
@@ -46,7 +33,6 @@ async function fetchAndStoreData() {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      httpsAgent,
       data: 'grant_type=client_credentials' +
             '&client_id=' + bloombergConfig.clientId +
             '&client_secret=' + bloombergConfig.clientSecret
@@ -55,62 +41,60 @@ async function fetchAndStoreData() {
     const accessToken = tokenResponse.data.access_token;
     console.log('Access token received');
 
-    // Common headers for Bloomberg API requests
-    const bloombergHeaders = {
-      'Authorization': 'Bearer ' + accessToken,
-      'Accept': 'text/csv',
-      'api-version': bloombergConfig.apiVersion,
-      'Content-Type': 'application/json'
-    };
+    // Get today's date in YYYYMMDD format - matching VBA Format(IntWS.Cells(25, 3).Value, "yyyymmdd")
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
 
-    // Fetch Rates data - using DLWS endpoint
+    // Fetch Rates data - matching exact VBA URL structure
     console.log('Fetching Rates data...');
-    const ratesUrl = bloombergConfig.baseUrl + '?dataset=' + process.env.BLOOMBERG_RATES_DATASET;
+    const ratesUrl = bloombergConfig.baseUrl + 
+                    'catalogs/' + bloombergConfig.catalog + 
+                    '/datasets/' + process.env.BLOOMBERG_RATES_DATASET + 
+                    '/snapshots/' + today + 
+                    '/distributions/' + process.env.BLOOMBERG_RATES_DATASET + '.csv';
 
     console.log('Requesting Rates URL:', ratesUrl);
-    const ratesResponse = await bloombergAxios.get(ratesUrl, {
-      headers: bloombergHeaders,
-      validateStatus: function (status) {
-        return status < 500; // Accept any status code less than 500
+    const ratesResponse = await axios.get(ratesUrl, {
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Accept': 'text/csv',
+        'api-version': '2'  // Matches VBA "2" parameter
       }
     });
 
-    if (ratesResponse.status !== 200) {
-      console.error('Rates API Error:', ratesResponse.data);
-      throw new Error('Failed to fetch rates data: ' + ratesResponse.data.description);
-    }
-
+    // Remove headers like in VBA: Mid(BBData1, InStr(BBData1, vbLf) + 1)
+    const ratesData = ratesResponse.data.split('\\n').slice(1).join('\\n');
     console.log('Rates data received');
 
-    // Fetch CPI data - using DLWS endpoint
+    // Fetch CPI data - matching exact VBA URL structure
     console.log('Fetching CPI data...');
-    const cpiUrl = bloombergConfig.baseUrl + '?dataset=' + process.env.BLOOMBERG_CPI_DATASET;
+    const cpiUrl = bloombergConfig.baseUrl + 
+                   'catalogs/' + bloombergConfig.catalog + 
+                   '/datasets/' + process.env.BLOOMBERG_CPI_DATASET + 
+                   '/snapshots/' + today + 
+                   '/distributions/' + process.env.BLOOMBERG_CPI_DATASET + '.csv';
 
     console.log('Requesting CPI URL:', cpiUrl);
-    const cpiResponse = await bloombergAxios.get(cpiUrl, {
-      headers: bloombergHeaders,
-      validateStatus: function (status) {
-        return status < 500; // Accept any status code less than 500
+    const cpiResponse = await axios.get(cpiUrl, {
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Accept': 'text/csv',
+        'api-version': '2'  // Matches VBA "2" parameter
       }
     });
 
-    if (cpiResponse.status !== 200) {
-      console.error('CPI API Error:', cpiResponse.data);
-      throw new Error('Failed to fetch CPI data: ' + cpiResponse.data.description);
-    }
-
+    // Remove headers like in VBA: Mid(BBData2, InStr(BBData2, vbLf) + 1)
+    const cpiData = cpiResponse.data.split('\\n').slice(1).join('\\n');
     console.log('CPI data received');
 
-    // Parse CSV data (removing headers like in VBA)
-    const ratesData = parse(ratesResponse.data.split('\\n').slice(1).join('\\n'));
-    const cpiData = parse(cpiResponse.data.split('\\n').slice(1).join('\\n'));
+    // Parse CSV data and combine like in VBA: ParseCSV(BBData1 & BBData2)
+    const combinedData = ratesData + cpiData;
+    const parsedData = parse(combinedData);
 
     // Process and store data
     console.log('Processing and storing data in Supabase...');
     const marketData = {
       date: new Date().toISOString().split('T')[0],
-      rates_data: ratesData,
-      cpi_data: cpiData,
+      data: parsedData,
       timestamp: new Date().toISOString()
     };
 
