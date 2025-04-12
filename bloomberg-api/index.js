@@ -13,14 +13,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Bloomberg API configuration - matching VBA implementation
+// Bloomberg API configuration - matching VBA implementation exactly
 const bloombergConfig = {
   tokenEndpoint: 'https://bsso.blpprofessional.com/ext/api/as/token.oauth2',
   clientId: process.env.BLOOMBERG_CLIENT_ID,
   clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
   baseUrl: 'https://api.bloomberg.com/eap/',
   catalog: '40368',
-  apiVersion: '2'  // Added API version
+  apiVersion: '2'
 };
 
 async function fetchAndStoreData() {
@@ -52,7 +52,7 @@ async function fetchAndStoreData() {
       'api-version': bloombergConfig.apiVersion
     };
 
-    // Fetch Rates data - matching VBA implementation
+    // Fetch Rates data - exactly matching VBA URL structure
     console.log('Fetching Rates data...');
     const ratesUrl = bloombergConfig.baseUrl + 
                     'catalogs/' + bloombergConfig.catalog + 
@@ -60,13 +60,22 @@ async function fetchAndStoreData() {
                     '/snapshots/' + today + 
                     '/distributions/' + process.env.BLOOMBERG_RATES_DATASET + '.csv';
 
+    console.log('Requesting Rates URL:', ratesUrl);
     const ratesResponse = await axios.get(ratesUrl, {
-      headers: bloombergHeaders
+      headers: bloombergHeaders,
+      validateStatus: function (status) {
+        return status < 500; // Accept any status code less than 500
+      }
     });
+
+    if (ratesResponse.status !== 200) {
+      console.error('Rates API Error:', ratesResponse.data);
+      throw new Error('Failed to fetch rates data: ' + ratesResponse.data.description);
+    }
 
     console.log('Rates data received');
 
-    // Fetch CPI data - matching VBA implementation
+    // Fetch CPI data - exactly matching VBA URL structure
     console.log('Fetching CPI data...');
     const cpiUrl = bloombergConfig.baseUrl + 
                    'catalogs/' + bloombergConfig.catalog + 
@@ -74,9 +83,18 @@ async function fetchAndStoreData() {
                    '/snapshots/' + today + 
                    '/distributions/' + process.env.BLOOMBERG_CPI_DATASET + '.csv';
 
+    console.log('Requesting CPI URL:', cpiUrl);
     const cpiResponse = await axios.get(cpiUrl, {
-      headers: bloombergHeaders
+      headers: bloombergHeaders,
+      validateStatus: function (status) {
+        return status < 500; // Accept any status code less than 500
+      }
     });
+
+    if (cpiResponse.status !== 200) {
+      console.error('CPI API Error:', cpiResponse.data);
+      throw new Error('Failed to fetch CPI data: ' + cpiResponse.data.description);
+    }
 
     console.log('CPI data received');
 
@@ -105,6 +123,7 @@ async function fetchAndStoreData() {
       console.error('API Response:', error.response.data);
       console.error('Status:', error.response.status);
       console.error('Headers:', error.response.headers);
+      console.error('Request URL:', error.response.config.url);
     }
     console.error('Full error:', error);
   }
