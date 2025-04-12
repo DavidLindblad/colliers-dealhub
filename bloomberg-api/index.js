@@ -82,15 +82,20 @@ async function fetchAndStoreData() {
     bbData2 = bbData2.substring(bbData2.indexOf('\\n') + 1);
     console.log('CPI data received and processed');
 
-    // Store in Supabase with correct column names
-    console.log('Storing data in Supabase...');
+    // Parse the CSV data to get the values we need
+    const now = new Date();
     const marketData = {
-      id: Date.now(),  // Auto-generated ID
-      date: new Date().toISOString().split('T')[0],
-      rates: bbData1,
-      cpi: bbData2,
-      created_at: new Date().toISOString()
+      DL_REQUEST_ID: bloombergConfig.ratesDataset,  // Using rates dataset ID
+      DL_REQUEST_NAME: 'Bloomberg Market Data',
+      DL_SNAPSHOT_TZ: 'UTC',
+      IDENTIFIER: 'RATES_AND_CPI',
+      RC: 0,  // Success code
+      Date: now.toISOString().split('T')[0],  // Current date in YYYY-MM-DD format
+      PX_LAST: bbData1,  // Storing rates data in PX_LAST
+      DL_SNAPSHOT_START_TIME: now.toISOString()  // Current timestamp with timezone
     };
+
+    console.log('Attempting to insert with structure:', JSON.stringify(marketData, null, 2));
 
     const { data, error } = await supabase
       .from('DailyMarketReport')
