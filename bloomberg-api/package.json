@@ -1,0 +1,24 @@
+{
+  "name": "bloomberg-supabase-sync",
+  "version": "1.0.0",
+  "description": "Script to fetch Bloomberg CSV data and store in Supabase",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "docker:build": "docker build -t bloomberg-supabase-sync .",
+    "docker:run": "docker run -d --env-file .env --name bloomberg-supabase-sync bloomberg-supabase-sync",
+    "docker:stop": "docker stop bloomberg-supabase-sync && docker rm bloomberg-supabase-sync",
+    "docker:logs": "docker logs -f bloomberg-supabase-sync"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "axios": "^1.6.7",
+    "csv-parse": "^5.5.3",
+    "dotenv": "^16.5.0",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
