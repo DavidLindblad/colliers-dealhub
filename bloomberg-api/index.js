@@ -13,19 +13,25 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Bloomberg API configuration - matching exact VBA implementation
+// Bloomberg API configuration - using exact values provided
 const bloombergConfig = {
   tokenEndpoint: 'https://bsso.blpprofessional.com/ext/api/as/token.oauth2',
-  clientId: process.env.BLOOMBERG_CLIENT_ID,
-  clientSecret: process.env.BLOOMBERG_CLIENT_SECRET,
-  baseUrl: 'https://api.bloomberg.com/eap/',  // Matches BBHost in VBA
-  catalog: '40368'
+  clientId: 'ed1b85be93ad2b60985c6edacf039aa8',
+  clientSecret: '42a3cf00ca42c5d1588e9337692d54ea76d4fe48fcef251bc4bc1ed2c08f012b',
+  baseUrl: 'https://api.bloomberg.com/eap/',
+  catalog: '40368',
+  ratesDataset: 'uhTHmsoic3s',
+  cpiDataset: 'uhZ2f73GGS6Y'  // Updated CPI dataset ID
 };
 
 async function fetchAndStoreData() {
   console.log('Starting data fetch at:', new Date().toISOString());
   try {
-    // Get Bloomberg access token - matching VBA implementation exactly
+    // Get today's date in YYYYMMDD format for snapshot
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    console.log('Using snapshot date:', today);
+
+    // Get Bloomberg access token
     console.log('Getting Bloomberg access token...');
     const tokenResponse = await axios({
       method: 'post',
@@ -41,52 +47,49 @@ async function fetchAndStoreData() {
     const accessToken = tokenResponse.data.access_token;
     console.log('Access token received');
 
-    // Get today's date in YYYYMMDD format - matching VBA Format(IntWS.Cells(25, 3).Value, "yyyymmdd")
-    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-
-    // Fetch Rates data - matching exact VBA URL structure
+    // Fetch Rates data
     console.log('Fetching Rates data...');
     const ratesUrl = bloombergConfig.baseUrl + 
                     'catalogs/' + bloombergConfig.catalog + 
-                    '/datasets/' + process.env.BLOOMBERG_RATES_DATASET + 
+                    '/datasets/' + bloombergConfig.ratesDataset + 
                     '/snapshots/' + today + 
-                    '/distributions/' + process.env.BLOOMBERG_RATES_DATASET + '.csv';
+                    '/distributions/' + bloombergConfig.ratesDataset + '.csv';
 
     console.log('Requesting Rates URL:', ratesUrl);
     const ratesResponse = await axios.get(ratesUrl, {
       headers: {
         'Authorization': 'Bearer ' + accessToken,
         'Accept': 'text/csv',
-        'api-version': '2'  // Matches VBA "2" parameter
+        'api-version': '2'
       }
     });
 
-    // Remove headers like in VBA: Mid(BBData1, InStr(BBData1, vbLf) + 1)
+    // Remove headers
     const ratesData = ratesResponse.data.split('\\n').slice(1).join('\\n');
     console.log('Rates data received');
 
-    // Fetch CPI data - matching exact VBA URL structure
+    // Fetch CPI data
     console.log('Fetching CPI data...');
     const cpiUrl = bloombergConfig.baseUrl + 
                    'catalogs/' + bloombergConfig.catalog + 
-                   '/datasets/' + process.env.BLOOMBERG_CPI_DATASET + 
+                   '/datasets/' + bloombergConfig.cpiDataset + 
                    '/snapshots/' + today + 
-                   '/distributions/' + process.env.BLOOMBERG_CPI_DATASET + '.csv';
+                   '/distributions/' + bloombergConfig.cpiDataset + '.csv';
 
     console.log('Requesting CPI URL:', cpiUrl);
     const cpiResponse = await axios.get(cpiUrl, {
       headers: {
         'Authorization': 'Bearer ' + accessToken,
         'Accept': 'text/csv',
-        'api-version': '2'  // Matches VBA "2" parameter
+        'api-version': '2'
       }
     });
 
-    // Remove headers like in VBA: Mid(BBData2, InStr(BBData2, vbLf) + 1)
+    // Remove headers
     const cpiData = cpiResponse.data.split('\\n').slice(1).join('\\n');
     console.log('CPI data received');
 
-    // Parse CSV data and combine like in VBA: ParseCSV(BBData1 & BBData2)
+    // Parse CSV data and combine
     const combinedData = ratesData + cpiData;
     const parsedData = parse(combinedData);
 
